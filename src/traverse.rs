@@ -8,7 +8,7 @@ const MAX_TRAVERSAL_DEPTH: usize = 20;
 ///
 /// IMPORTANT: `current` is visited first, THEN the `.git` boundary is checked.
 /// This allows finding files at the repo root (e.g., `node_modules/.bin`,
-/// `.claude-reviews.json`) while still preventing traversal above the repo.
+/// `.claude/tools.json`) while still preventing traversal above the repo.
 pub fn walk_ancestors<T>(start: &Path, mut visitor: impl FnMut(&Path) -> Option<T>) -> Option<T> {
     let mut current = start;
     for _ in 0..MAX_TRAVERSAL_DEPTH {

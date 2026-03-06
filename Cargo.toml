@@ -1,10 +1,10 @@
 [package]
-name = "claude-reviews"
-version = "0.3.0"
+name = "reviews"
+version = "0.4.0"
 edition = "2024"
 description = "Claude Code PreToolUse hook for parallel static analysis"
 license = "MIT"
-repository = "https://github.com/thkt/claude-reviews"
+repository = "https://github.com/thkt/reviews"
 
 [[bin]]
 name = "reviews"

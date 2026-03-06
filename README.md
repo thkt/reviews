@@ -1,6 +1,6 @@
 **English** | [日本語](README.ja.md)
 
-# claude-reviews
+# reviews
 
 A [Claude Code hook](https://docs.anthropic.com/en/docs/claude-code/hooks) that runs static analysis tools before configured skills (default: `/review`) and feeds the results to the agent as context. Instead of the agent scanning code manually, it gets real linter output and type errors upfront.
 
@@ -46,11 +46,11 @@ brew install thkt/tap/reviews
 
 ### From Release
 
-Download the latest binary from [Releases](https://github.com/thkt/claude-reviews/releases):
+Download the latest binary from [Releases](https://github.com/thkt/reviews/releases):
 
 ```bash
 # macOS (Apple Silicon)
-curl -L https://github.com/thkt/claude-reviews/releases/latest/download/reviews-aarch64-apple-darwin.tar.gz | tar xz
+curl -L https://github.com/thkt/reviews/releases/latest/download/reviews-aarch64-apple-darwin.tar.gz | tar xz
 mv reviews ~/.local/bin/
 ```
 
@@ -60,11 +60,11 @@ mv reviews ~/.local/bin/
 
 ```bash
 cd /tmp
-git clone https://github.com/thkt/claude-reviews.git
-cd claude-reviews
+git clone https://github.com/thkt/reviews.git
+cd reviews
 cargo build --release
 cp target/release/reviews ~/.local/bin/
-cd .. && rm -rf claude-reviews
+cd .. && rm -rf reviews
 ```
 
 ## Usage
@@ -110,19 +110,23 @@ Tools are resolved from `node_modules/.bin` first, falling back to `$PATH`.
 
 ## Configuration
 
-Place `.claude-reviews.json` at your project root (next to `.git/`). All fields are optional — only specify what you want to override.
+Add a `reviews` key to `.claude/tools.json` at your project root. All fields are optional — only specify what you want to override.
+
+> **Migration**: `.claude-reviews.json` at the project root is still supported as a legacy fallback. If both exist, `.claude/tools.json` takes priority.
 
 **Defaults** (no config file needed): all tools enabled, activates on `/review`.
 
 ```json
 {
-  "enabled": true,
-  "skills": ["review"],
-  "tools": {
-    "knip": true,
-    "oxlint": true,
-    "tsgo": true,
-    "react_doctor": true
+  "reviews": {
+    "enabled": true,
+    "skills": ["review"],
+    "tools": {
+      "knip": true,
+      "oxlint": true,
+      "tsgo": true,
+      "react_doctor": true
+    }
   }
 }
 ```
@@ -133,7 +137,9 @@ Place `.claude-reviews.json` at your project root (next to `.git/`). All fields 
 
 ```json
 {
-  "skills": ["audit"]
+  "reviews": {
+    "skills": ["audit"]
+  }
 }
 ```
 
@@ -141,7 +147,9 @@ Place `.claude-reviews.json` at your project root (next to `.git/`). All fields 
 
 ```json
 {
-  "skills": ["review", "audit"]
+  "reviews": {
+    "skills": ["review", "audit"]
+  }
 }
 ```
 
@@ -149,8 +157,10 @@ Place `.claude-reviews.json` at your project root (next to `.git/`). All fields 
 
 ```json
 {
-  "tools": {
-    "tsgo": false
+  "reviews": {
+    "tools": {
+      "tsgo": false
+    }
   }
 }
 ```
@@ -159,13 +169,15 @@ Place `.claude-reviews.json` at your project root (next to `.git/`). All fields 
 
 ```json
 {
-  "enabled": false
+  "reviews": {
+    "enabled": false
+  }
 }
 ```
 
 ### Config Resolution
 
-The config file is found by walking up from `$CWD` to the nearest `.git` directory. If `.claude-reviews.json` exists there, it is loaded and merged with defaults.
+The config file is found by walking up from `$CWD` to the nearest `.git` directory. If `.claude/tools.json` exists there and contains a `reviews` key, it is loaded and merged with defaults.
 
 ## Using with Existing Linters
 
@@ -180,8 +192,10 @@ To disable overlapping tools in reviews and rely on your commit hook instead:
 
 ```json
 {
-  "tools": {
-    "oxlint": false
+  "reviews": {
+    "tools": {
+      "oxlint": false
+    }
   }
 }
 ```

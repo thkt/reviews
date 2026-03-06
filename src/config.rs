@@ -1,7 +1,13 @@
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
-const CONFIG_FILE: &str = ".claude-reviews.json";
+const TOOLS_CONFIG_FILE: &str = ".claude/tools.json";
+const LEGACY_CONFIG_FILE: &str = ".claude-reviews.json";
+
+#[derive(Debug, Deserialize)]
+struct ToolsJsonConfig {
+    reviews: Option<ProjectConfig>,
+}
 
 /// Generates three items from a field list:
 /// - `ToolsConfig`: all `bool` fields (default `true`) — runtime config
@@ -67,35 +73,54 @@ struct ProjectConfig {
 impl Config {
     pub fn load(start: &Path) -> Self {
         let default = Self::default();
-        let Some(config_path) = Self::find_config(start) else {
+        let Some(git_root) = Self::find_git_root(start) else {
             return default;
         };
-        Self::load_from(&config_path, default)
+
+        // Try .claude/tools.json first, then legacy .claude-reviews.json
+        let tools_path = git_root.join(TOOLS_CONFIG_FILE);
+        if tools_path.exists() {
+            return Self::load_tools_config(&tools_path, default);
+        }
+
+        let legacy_path = git_root.join(LEGACY_CONFIG_FILE);
+        if legacy_path.exists() {
+            return Self::load_legacy_config(&legacy_path, default);
+        }
+
+        default
     }
 
-    fn find_config(start: &Path) -> Option<PathBuf> {
+    fn find_git_root(start: &Path) -> Option<PathBuf> {
         crate::traverse::walk_ancestors(start, |dir| {
-            let candidate = dir.join(CONFIG_FILE);
-            candidate.exists().then_some(candidate)
+            dir.join(".git").exists().then(|| dir.to_path_buf())
         })
     }
 
-    fn load_from(path: &Path, default: Config) -> Config {
-        let content = match std::fs::read_to_string(path) {
-            Ok(c) => c,
-            Err(e) => {
-                eprintln!("reviews: warning: failed to read config: {}", e);
-                return default;
-            }
+    fn read_and_parse<T: serde::de::DeserializeOwned>(path: &Path) -> Option<T> {
+        let content = std::fs::read_to_string(path)
+            .map_err(|e| eprintln!("reviews: warning: failed to read config: {}", e))
+            .ok()?;
+        serde_json::from_str(&content)
+            .map_err(|e| eprintln!("reviews: warning: invalid config JSON: {}", e))
+            .ok()
+    }
+
+    fn load_tools_config(path: &Path, default: Config) -> Config {
+        let Some(tools) = Self::read_and_parse::<ToolsJsonConfig>(path) else {
+            return default;
         };
-        let project: ProjectConfig = match serde_json::from_str(&content) {
-            Ok(p) => p,
-            Err(e) => {
-                eprintln!("reviews: warning: invalid config JSON: {}", e);
-                return default;
-            }
-        };
-        default.merge(project)
+        match tools.reviews {
+            Some(project) => default.merge(project),
+            None => default,
+        }
+    }
+
+    fn load_legacy_config(path: &Path, default: Config) -> Config {
+        match Self::read_and_parse::<ProjectConfig>(path) {
+            Some(project) => default.merge(project),
+            None => default,
+        }
     }
 
     fn merge(mut self, project: ProjectConfig) -> Self {
@@ -132,10 +157,15 @@ mod tests {
     }
 
     #[test]
-    fn partial_config_merges_with_defaults() {
+    fn partial_config_from_tools_json() {
         let tmp = TempDir::new("config-partial");
         fs::create_dir_all(tmp.join(".git")).unwrap();
-        fs::write(tmp.join(CONFIG_FILE), r#"{"tools": {"knip": false}}"#).unwrap();
+        fs::create_dir_all(tmp.join(".claude")).unwrap();
+        fs::write(
+            tmp.join(TOOLS_CONFIG_FILE),
+            r#"{"reviews": {"tools": {"knip": false}}}"#,
+        )
+        .unwrap();
 
         let config = Config::load(&tmp);
         assert!(config.enabled);
@@ -149,7 +179,12 @@ mod tests {
     fn enabled_false_disables_all() {
         let tmp = TempDir::new("config-disabled");
         fs::create_dir_all(tmp.join(".git")).unwrap();
-        fs::write(tmp.join(CONFIG_FILE), r#"{"enabled": false}"#).unwrap();
+        fs::create_dir_all(tmp.join(".claude")).unwrap();
+        fs::write(
+            tmp.join(TOOLS_CONFIG_FILE),
+            r#"{"reviews": {"enabled": false}}"#,
+        )
+        .unwrap();
 
         let config = Config::load(&tmp);
         assert!(!config.enabled);
@@ -159,7 +194,8 @@ mod tests {
     fn invalid_json_falls_back_to_default() {
         let tmp = TempDir::new("config-invalid");
         fs::create_dir_all(tmp.join(".git")).unwrap();
-        fs::write(tmp.join(CONFIG_FILE), "not valid json{{{").unwrap();
+        fs::create_dir_all(tmp.join(".claude")).unwrap();
+        fs::write(tmp.join(TOOLS_CONFIG_FILE), "not valid json{{{").unwrap();
 
         let config = Config::load(&tmp);
         assert!(config.enabled);
@@ -179,9 +215,10 @@ mod tests {
     fn skills_override_replaces_default() {
         let tmp = TempDir::new("config-skills-override");
         fs::create_dir_all(tmp.join(".git")).unwrap();
+        fs::create_dir_all(tmp.join(".claude")).unwrap();
         fs::write(
-            tmp.join(CONFIG_FILE),
-            r#"{"skills": ["audit", "preview"]}"#,
+            tmp.join(TOOLS_CONFIG_FILE),
+            r#"{"reviews": {"skills": ["audit", "preview"]}}"#,
         )
         .unwrap();
 
@@ -190,10 +227,68 @@ mod tests {
     }
 
     #[test]
+    fn loads_from_legacy_config() {
+        let tmp = TempDir::new("config-legacy");
+        fs::create_dir_all(tmp.join(".git")).unwrap();
+        fs::write(
+            tmp.join(LEGACY_CONFIG_FILE),
+            r#"{"tools": {"knip": false}}"#,
+        )
+        .unwrap();
+
+        let config = Config::load(&tmp);
+        assert!(!config.tools.knip);
+        assert!(config.tools.oxlint);
+    }
+
+    #[test]
+    fn tools_json_takes_priority_over_legacy() {
+        let tmp = TempDir::new("config-priority");
+        fs::create_dir_all(tmp.join(".git")).unwrap();
+        fs::create_dir_all(tmp.join(".claude")).unwrap();
+        fs::write(
+            tmp.join(TOOLS_CONFIG_FILE),
+            r#"{"reviews": {"tools": {"knip": false}}}"#,
+        )
+        .unwrap();
+        fs::write(
+            tmp.join(LEGACY_CONFIG_FILE),
+            r#"{"tools": {"oxlint": false}}"#,
+        )
+        .unwrap();
+
+        let config = Config::load(&tmp);
+        // tools.json wins: knip=false, oxlint stays default (true)
+        assert!(!config.tools.knip);
+        assert!(config.tools.oxlint);
+    }
+
+    #[test]
+    fn tools_json_without_reviews_key_returns_defaults() {
+        let tmp = TempDir::new("config-no-key");
+        fs::create_dir_all(tmp.join(".git")).unwrap();
+        fs::create_dir_all(tmp.join(".claude")).unwrap();
+        fs::write(
+            tmp.join(TOOLS_CONFIG_FILE),
+            r#"{"formatter": {"some": "config"}}"#,
+        )
+        .unwrap();
+
+        let config = Config::load(&tmp);
+        assert!(config.tools.knip);
+        assert!(config.tools.oxlint);
+    }
+
+    #[test]
     fn finds_config_in_parent_directory() {
         let tmp = TempDir::new("config-parent");
         fs::create_dir_all(tmp.join(".git")).unwrap();
-        fs::write(tmp.join(CONFIG_FILE), r#"{"tools": {"knip": false}}"#).unwrap();
+        fs::create_dir_all(tmp.join(".claude")).unwrap();
+        fs::write(
+            tmp.join(TOOLS_CONFIG_FILE),
+            r#"{"reviews": {"tools": {"knip": false}}}"#,
+        )
+        .unwrap();
         let subdir = tmp.join("src").join("components");
         fs::create_dir_all(&subdir).unwrap();
 
