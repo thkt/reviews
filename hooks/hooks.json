@@ -1,0 +1,17 @@
+{
+  "description": "Pre-flight static analysis gate for Skill invocations",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wrapper.sh reviews",
+            "timeout": 45000
+          }
+        ]
+      }
+    ]
+  }
+}

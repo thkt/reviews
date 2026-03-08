@@ -1,0 +1,13 @@
+{
+  "name": "reviews",
+  "owner": {
+    "name": "thkt"
+  },
+  "plugins": [
+    {
+      "name": "reviews",
+      "source": "./",
+      "description": "PreToolUse hook - static analysis gate for /audit"
+    }
+  ]
+}
