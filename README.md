@@ -38,7 +38,22 @@ If a tool is not installed, it is silently skipped.
 
 ## Installation
 
-### Homebrew (Recommended)
+### Claude Code Plugin (Recommended)
+
+Installs the binary and registers the hook automatically:
+
+```bash
+claude plugins marketplace add github:thkt/reviews
+claude plugins install reviews
+```
+
+If the binary is not yet installed, run the bundled installer:
+
+```bash
+~/.claude/plugins/cache/reviews/reviews/*/hooks/install.sh
+```
+
+### Homebrew
 
 ```bash
 brew install thkt/tap/reviews
@@ -56,8 +71,6 @@ mv reviews ~/.local/bin/
 
 ### From Source
 
-> **Note**: Do not clone into your project directory. The cloned repository will remain as a nested git repo and may interfere with your project's git operations.
-
 ```bash
 cd /tmp
 git clone https://github.com/thkt/reviews.git
@@ -69,7 +82,7 @@ cd .. && rm -rf reviews
 
 ## Usage
 
-Add to `~/.claude/settings.json`:
+When installed as a plugin, hooks are registered automatically. For manual setup, add to `~/.claude/settings.json`:
 
 ```json
 {
