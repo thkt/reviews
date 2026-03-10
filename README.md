@@ -213,6 +213,15 @@ To disable overlapping tools in reviews and rely on your commit hook instead:
 }
 ```
 
+## Related Tools
+
+| Tool | Hook | Timing | Role |
+| --- | --- | --- | --- |
+| [guardrails](https://github.com/thkt/guardrails) | PreToolUse | Before Write/Edit | Lint + security checks |
+| [formatter](https://github.com/thkt/formatter) | PostToolUse | After Write/Edit | Auto code formatting |
+| **reviews** | PreToolUse | Review Skill execution | Static analysis context |
+| [gates](https://github.com/thkt/gates) | Stop | Agent completion | Quality gates (knip, tsgo, madge) |
+
 ## License
 
 MIT
