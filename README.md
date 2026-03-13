@@ -112,12 +112,12 @@ When a configured skill is invoked (default: `/review`), the hook:
 
 ## Tools
 
-| Tool                                                      | Condition              | Arguments                        |
-| --------------------------------------------------------- | ---------------------- | -------------------------------- |
-| [knip](https://knip.dev)                                  | `package.json` exists  | `--reporter json --no-exit-code` |
-| [oxlint](https://oxc.rs)                                  | `package.json` exists  | `--format json .`                |
-| [tsgo](https://github.com/microsoft/typescript-go)        | `tsconfig.json` exists | `--noEmit`                       |
-| [react-doctor](https://github.com/millionco/react-doctor) | React in dependencies  | `. --verbose`                    |
+| Tool                                                      | Condition              | Arguments                                     |
+| --------------------------------------------------------- | ---------------------- | --------------------------------------------- |
+| [knip](https://knip.dev)                                  | `package.json` exists  | `--reporter json --no-exit-code`              |
+| [oxlint](https://oxc.rs)                                  | `package.json` exists  | `--format json --ignore-pattern node_modules` |
+| [tsgo](https://github.com/microsoft/typescript-go)        | `tsconfig.json` exists | `--noEmit`                                    |
+| [react-doctor](https://github.com/millionco/react-doctor) | React in dependencies  | `. --verbose`                                 |
 
 Tools are resolved from `node_modules/.bin` first, falling back to `$PATH`.
 
@@ -215,12 +215,12 @@ To disable overlapping tools in reviews and rely on your commit hook instead:
 
 ## Related Tools
 
-| Tool | Hook | Timing | Role |
-| --- | --- | --- | --- |
-| [guardrails](https://github.com/thkt/guardrails) | PreToolUse | Before Write/Edit | Lint + security checks |
-| [formatter](https://github.com/thkt/formatter) | PostToolUse | After Write/Edit | Auto code formatting |
-| **reviews** | PreToolUse | Review Skill execution | Static analysis context |
-| [gates](https://github.com/thkt/gates) | Stop | Agent completion | Quality gates (knip, tsgo, madge) |
+| Tool                                             | Hook        | Timing                 | Role                              |
+| ------------------------------------------------ | ----------- | ---------------------- | --------------------------------- |
+| [guardrails](https://github.com/thkt/guardrails) | PreToolUse  | Before Write/Edit      | Lint + security checks            |
+| [formatter](https://github.com/thkt/formatter)   | PostToolUse | After Write/Edit       | Auto code formatting              |
+| **reviews**                                      | PreToolUse  | Review Skill execution | Static analysis context           |
+| [gates](https://github.com/thkt/gates)           | Stop        | Agent completion       | Quality gates (knip, tsgo, madge) |
 
 ## License
 
