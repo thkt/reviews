@@ -81,7 +81,10 @@ fn run(input: &str, cwd: &Path) -> Option<String> {
     let config = config::Config::load(cwd);
 
     if *DEBUG {
-        eprintln!("reviews: debug: skill={skill}, enabled={}, skills={:?}", config.enabled, config.skills);
+        eprintln!(
+            "reviews: debug: skill={skill}, enabled={}, skills={:?}",
+            config.enabled, config.skills
+        );
     }
 
     if !config.enabled || !config.skills.contains(&skill) {
@@ -105,7 +108,10 @@ fn run(input: &str, cwd: &Path) -> Option<String> {
     tools::enforce_total_budget(&mut results);
 
     if *DEBUG {
-        eprintln!("reviews: debug: completed in {}ms", start.elapsed().as_millis());
+        eprintln!(
+            "reviews: debug: completed in {}ms",
+            start.elapsed().as_millis()
+        );
     }
 
     build_output(&results)
@@ -347,11 +353,7 @@ mod tests {
     fn run_returns_none_when_disabled() {
         let tmp = test_utils::TempDir::new("run-disabled");
         std::fs::create_dir_all(tmp.join(".git")).unwrap();
-        std::fs::write(
-            tmp.join(".claude-reviews.json"),
-            r#"{"enabled": false}"#,
-        )
-        .unwrap();
+        std::fs::write(tmp.join(".claude-reviews.json"), r#"{"enabled": false}"#).unwrap();
         let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "review"}}"#;
         assert!(run(input, &tmp).is_none());
     }
@@ -367,11 +369,7 @@ mod tests {
     fn run_returns_none_for_skill_not_in_config() {
         let tmp = test_utils::TempDir::new("run-notinlist");
         std::fs::create_dir_all(tmp.join(".git")).unwrap();
-        std::fs::write(
-            tmp.join(".claude-reviews.json"),
-            r#"{"skills": ["audit"]}"#,
-        )
-        .unwrap();
+        std::fs::write(tmp.join(".claude-reviews.json"), r#"{"skills": ["audit"]}"#).unwrap();
         let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "review"}}"#;
         assert!(run(input, &tmp).is_none());
     }
