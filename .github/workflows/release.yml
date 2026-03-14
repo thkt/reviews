@@ -29,10 +29,6 @@ jobs:
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
             name: reviews-aarch64-unknown-linux-gnu
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            name: reviews-x86_64-pc-windows-msvc
-
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -58,15 +54,13 @@ jobs:
       - name: Build
         env:
           TARGET: ${{ matrix.target }}
-        shell: bash
         run: |
           if [ "$TARGET" = "aarch64-unknown-linux-gnu" ]; then
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
           fi
           cargo build --release --target "$TARGET"
 
-      - name: Package (Unix)
-        if: runner.os != 'Windows'
+      - name: Package
         env:
           TARGET: ${{ matrix.target }}
           NAME: ${{ matrix.name }}
@@ -74,16 +68,6 @@ jobs:
           cp "target/$TARGET/release/reviews" reviews
           chmod +x reviews
           tar czf "$NAME.tar.gz" reviews
-
-      - name: Package (Windows)
-        if: runner.os == 'Windows'
-        env:
-          TARGET: ${{ matrix.target }}
-          NAME: ${{ matrix.name }}
-        shell: pwsh
-        run: |
-          Copy-Item "target/$env:TARGET/release/reviews.exe" reviews.exe
-          Compress-Archive -Path reviews.exe -DestinationPath "$env:NAME.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
