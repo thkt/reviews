@@ -47,20 +47,26 @@ fn build_output(results: &[tools::ToolResult]) -> Option<String> {
     }
 
     let with_issues = with_output.iter().filter(|r| !r.success).count();
-    let reason = if with_issues > 0 {
-        format!(
-            "Pre-flight: {}/{} tools reported ({} with issues)",
-            with_output.len(),
-            results.len(),
-            with_issues
-        )
-    } else {
-        format!(
-            "Pre-flight: {}/{} tools reported",
-            with_output.len(),
-            results.len()
-        )
-    };
+    let summaries: Vec<String> = with_output
+        .iter()
+        .map(|r| {
+            let lines = r.output.lines().count();
+            let status = if r.success { "ok" } else { "issues" };
+            format!("{}: {} lines ({})", r.name, lines, status)
+        })
+        .collect();
+    let mut reason = format!(
+        "Pre-flight: {}/{} tools reported",
+        with_output.len(),
+        results.len()
+    );
+    if with_issues > 0 {
+        reason.push_str(&format!(" ({} with issues)", with_issues));
+    }
+    if !summaries.is_empty() {
+        reason.push_str(" | ");
+        reason.push_str(&summaries.join(", "));
+    }
     let output = serde_json::json!({
         "decision": "approve",
         "reason": reason,

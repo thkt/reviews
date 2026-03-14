@@ -11,7 +11,7 @@ pub fn run(project: &ProjectInfo) -> ToolResult {
     super::run_js_command(
         "oxlint",
         &bin,
-        &["--format", "json", "--ignore-pattern", "node_modules"],
+        &["--format", "unix", "--ignore-pattern", "node_modules"],
         project,
     )
 }

@@ -11,7 +11,7 @@ pub fn run(project: &ProjectInfo) -> ToolResult {
     super::run_js_command(
         "knip",
         &bin,
-        &["--reporter", "json", "--no-exit-code"],
+        &["--reporter", "compact", "--no-exit-code"],
         project,
     )
 }
