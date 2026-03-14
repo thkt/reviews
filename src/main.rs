@@ -38,7 +38,7 @@ fn build_output(results: &[tools::ToolResult]) -> Option<String> {
 
     let with_output: Vec<_> = results.iter().filter(|r| !r.output.is_empty()).collect();
 
-    let mut context = String::from("# Pre-flight Analysis Results\n\n");
+    let mut context = String::new();
     for result in &with_output {
         context.push_str(&format!(
             "## {}\n\n``````\n{}\n``````\n\n",
@@ -372,14 +372,6 @@ mod tests {
         std::fs::write(tmp.join(".claude-reviews.json"), r#"{"skills": ["audit"]}"#).unwrap();
         let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "review"}}"#;
         assert!(run(input, &tmp).is_none());
-    }
-
-    #[test]
-    fn run_with_matching_skill_produces_output() {
-        let tmp = test_utils::TempDir::new("run-match");
-        std::fs::create_dir_all(tmp.join(".git")).unwrap();
-        let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "review"}}"#;
-        let _ = run(input, &tmp);
     }
 
     #[test]

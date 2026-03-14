@@ -9,10 +9,6 @@ struct ToolsJsonConfig {
     reviews: Option<ProjectConfig>,
 }
 
-/// Generates three items from a field list:
-/// - `ToolsConfig`: all `bool` fields (default `true`) — runtime config
-/// - `ProjectToolsConfig`: all `Option<bool>` fields — JSON deserialization target
-/// - `ToolsConfig::apply()`: merges `ProjectToolsConfig` overrides into defaults
 macro_rules! define_tools {
     ($($field:ident),+ $(,)?) => {
         #[derive(Debug, Clone)]

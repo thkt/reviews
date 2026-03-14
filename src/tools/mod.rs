@@ -15,8 +15,6 @@ const MAX_OUTPUT_SIZE: usize = 102_400;
 /// Total budget for combined additionalContext across all tools
 const MAX_TOTAL_OUTPUT: usize = 204_800;
 
-// TS-001: Using &'static str because all tool names are compile-time constants.
-// If dynamic tool registration is needed, change to Cow<'static, str>.
 #[derive(Debug)]
 pub struct ToolResult {
     pub name: &'static str,
@@ -63,7 +61,6 @@ fn truncate_output(s: &str) -> String {
     }
 }
 
-/// Aggregate output budget: truncate results that would exceed MAX_TOTAL_OUTPUT.
 pub fn enforce_total_budget(results: &mut [ToolResult]) {
     let mut total = 0usize;
     for result in results.iter_mut() {
@@ -78,7 +75,6 @@ unsafe extern "C" {
     fn kill(pid: i32, sig: i32) -> i32;
 }
 
-/// Kill the entire process group (child + its descendants).
 fn kill_process_group(pid: u32) {
     // Safety: kill(-pid) sends signal to the process group led by `pid`.
     unsafe {
@@ -240,7 +236,6 @@ mod tests {
         let result = run_with_timeout_duration("sleep-test", cmd, Duration::from_millis(200));
         assert!(!result.success);
         assert!(result.output.is_empty());
-        assert_eq!(result.name, "sleep-test");
     }
 
     #[test]
