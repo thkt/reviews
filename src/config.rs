@@ -40,6 +40,7 @@ define_tools! {
     oxlint,
     tsgo,
     react_doctor,
+    markuplint,
 }
 
 #[derive(Debug, Clone)]
@@ -150,6 +151,7 @@ mod tests {
         assert!(config.tools.oxlint);
         assert!(config.tools.tsgo);
         assert!(config.tools.react_doctor);
+        assert!(config.tools.markuplint);
     }
 
     #[test]

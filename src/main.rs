@@ -186,6 +186,11 @@ fn run_tools_parallel(
             name: "react-doctor",
             run: tools::react_doctor::run,
         },
+        Entry {
+            enabled: config.tools.markuplint,
+            name: "markuplint",
+            run: tools::markuplint::run,
+        },
     ];
 
     let handles: Vec<_> = entries

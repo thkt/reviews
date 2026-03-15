@@ -1,4 +1,5 @@
 pub mod knip;
+pub mod markuplint;
 pub mod oxlint;
 pub mod react_doctor;
 pub mod tsgo;
