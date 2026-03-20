@@ -43,7 +43,7 @@ If a tool is not installed, it is silently skipped.
 Installs the binary and registers the hook automatically:
 
 ```bash
-claude plugins marketplace add github:thkt/reviews
+claude plugins marketplace add thkt/sentinels
 claude plugins install reviews
 ```
 

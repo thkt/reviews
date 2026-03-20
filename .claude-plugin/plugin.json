@@ -1,7 +1,0 @@
-{
-  "name": "reviews",
-  "description": "PreToolUse hook for Claude Code. Pre-flight static analysis gate for /audit skill invocations.",
-  "author": {
-    "name": "thkt"
-  }
-}

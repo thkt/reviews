@@ -45,7 +45,7 @@ hookは**アドバイザリー専用**で、常にツール呼び出しを承認
 バイナリのインストールとhookの登録が自動で行われます。
 
 ```bash
-claude plugins marketplace add github:thkt/reviews
+claude plugins marketplace add thkt/sentinels
 claude plugins install reviews
 ```
 
