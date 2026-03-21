@@ -136,6 +136,34 @@ fn run_with_timeout(name: &'static str, cmd: Command) -> ToolResult {
     run_with_timeout_duration(name, cmd, TOOL_TIMEOUT)
 }
 
+pub struct InstallInfo {
+    pub name: &'static str,
+    pub install: &'static str,
+}
+
+pub const INSTALL_COMMANDS: &[InstallInfo] = &[
+    InstallInfo {
+        name: "knip",
+        install: "npm i -D knip",
+    },
+    InstallInfo {
+        name: "oxlint",
+        install: "npm i -D oxlint",
+    },
+    InstallInfo {
+        name: "tsgo",
+        install: "npm i -g @typescript/native-preview",
+    },
+    InstallInfo {
+        name: "react-doctor",
+        install: "npm i -D react-doctor",
+    },
+    InstallInfo {
+        name: "markuplint",
+        install: "npm i -D markuplint",
+    },
+];
+
 pub(crate) fn run_js_command(
     name: &'static str,
     bin: &Path,

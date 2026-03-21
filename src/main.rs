@@ -131,6 +131,7 @@ fn run(input: &str, cwd: &Path) -> Option<String> {
     let start = std::time::Instant::now();
     let mut results = run_tools_parallel(&config, &project);
     tools::enforce_total_budget(&mut results);
+    warn_missing_tools(&results);
 
     if *DEBUG {
         eprintln!(
@@ -140,6 +141,25 @@ fn run(input: &str, cwd: &Path) -> Option<String> {
     }
 
     build_output(&results)
+}
+
+fn warn_missing_tools(results: &[tools::ToolResult]) {
+    for result in results {
+        if !result.output.is_empty() || result.success {
+            continue;
+        }
+        if let Some(info) = tools::INSTALL_COMMANDS
+            .iter()
+            .find(|i| i.name == result.name)
+        {
+            eprintln!(
+                "Reviews: {} not installed. Install: {}",
+                result.name, info.install
+            );
+        } else {
+            eprintln!("Reviews: {} not installed. Install manually.", result.name);
+        }
+    }
 }
 
 fn main() {
@@ -422,6 +442,39 @@ mod tests {
         .unwrap();
         let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "audit"}}"#;
         assert!(run(input, &tmp).is_none());
+    }
+
+    #[test]
+    fn warn_missing_tools_skipped_result() {
+        let results = vec![tools::ToolResult {
+            name: "knip",
+            output: String::new(),
+            success: false,
+        }];
+        // Should not panic; output goes to stderr
+        warn_missing_tools(&results);
+    }
+
+    #[test]
+    fn warn_missing_tools_ignores_successful() {
+        let results = vec![tools::ToolResult {
+            name: "knip",
+            output: "some output".into(),
+            success: true,
+        }];
+        // Successful results should not trigger warnings
+        warn_missing_tools(&results);
+    }
+
+    #[test]
+    fn warn_missing_tools_ignores_failed_with_output() {
+        let results = vec![tools::ToolResult {
+            name: "oxlint",
+            output: "lint errors found".into(),
+            success: false,
+        }];
+        // Failed with output = tool ran but found issues, not missing
+        warn_missing_tools(&results);
     }
 
     #[test]
