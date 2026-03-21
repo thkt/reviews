@@ -64,10 +64,53 @@ fn run_reviews(input: &str) -> (String, String, bool) {
 
 #[test]
 fn non_target_skill_exits_silently() {
+    let tmp = TempDir::new("nonmatch");
+    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    std::fs::create_dir_all(tmp.path().join(".claude")).unwrap();
+    std::fs::write(
+        tmp.path().join(".claude/tools.json"),
+        r#"{"reviews": {"skills": ["audit"]}}"#,
+    )
+    .unwrap();
+
     let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "commit"}}"#;
-    let (stdout, _, success) = run_reviews(input);
+    let (stdout, _, success) = run_reviews_in(tmp.path(), input);
     assert!(success);
     assert!(stdout.is_empty());
+}
+
+#[test]
+fn unconfigured_skills_warns_about_filtering() {
+    let tmp = TempDir::new("stderr-hint");
+    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
+
+    let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "audit"}}"#;
+    let (_, stderr, success) = run_reviews_in(tmp.path(), input);
+    assert!(success);
+    assert!(
+        stderr.contains("Filter via .claude/tools.json"),
+        "expected stderr hint, got: {stderr}"
+    );
+}
+
+#[test]
+fn configured_skills_runs_without_warning() {
+    let tmp = TempDir::new("no-hint");
+    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    std::fs::create_dir_all(tmp.path().join(".claude")).unwrap();
+    std::fs::write(
+        tmp.path().join(".claude/tools.json"),
+        r#"{"reviews": {"skills": ["audit"]}}"#,
+    )
+    .unwrap();
+
+    let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "audit"}}"#;
+    let (_, stderr, success) = run_reviews_in(tmp.path(), input);
+    assert!(success);
+    assert!(
+        !stderr.contains("Filter via .claude/tools.json"),
+        "should not print hint when skills configured, got: {stderr}"
+    );
 }
 
 #[test]

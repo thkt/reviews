@@ -46,7 +46,7 @@ define_tools! {
 #[derive(Debug, Clone)]
 pub struct Config {
     pub enabled: bool,
-    pub skills: Vec<String>,
+    pub skills: Option<Vec<String>>,
     pub tools: ToolsConfig,
 }
 
@@ -54,7 +54,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             enabled: true,
-            skills: vec!["review".into()],
+            skills: None,
             tools: ToolsConfig::default(),
         }
     }
@@ -74,7 +74,6 @@ impl Config {
             return default;
         };
 
-        // Try .claude/tools.json first, then legacy .claude-reviews.json
         let tools_path = git_root.join(TOOLS_CONFIG_FILE);
         if tools_path.exists() {
             return Self::load_tools_config(&tools_path, default);
@@ -125,7 +124,7 @@ impl Config {
             self.enabled = enabled;
         }
         if let Some(skills) = project.skills {
-            self.skills = skills;
+            self.skills = Some(skills);
         }
         if let Some(ref tools) = project.tools {
             self.tools.apply(tools);
@@ -201,12 +200,12 @@ mod tests {
     }
 
     #[test]
-    fn default_skills_is_review() {
+    fn default_skills_is_none() {
         let tmp = TempDir::new("config-skills-default");
         fs::create_dir_all(tmp.join(".git")).unwrap();
 
         let config = Config::load(&tmp);
-        assert_eq!(config.skills, vec!["review"]);
+        assert!(config.skills.is_none());
     }
 
     #[test]
@@ -221,7 +220,53 @@ mod tests {
         .unwrap();
 
         let config = Config::load(&tmp);
-        assert_eq!(config.skills, vec!["audit", "preview"]);
+        assert_eq!(config.skills, Some(vec!["audit".into(), "preview".into()]));
+    }
+
+    #[test]
+    fn empty_skills_list_is_preserved() {
+        let tmp = TempDir::new("config-skills-empty");
+        fs::create_dir_all(tmp.join(".git")).unwrap();
+        fs::create_dir_all(tmp.join(".claude")).unwrap();
+        fs::write(
+            tmp.join(TOOLS_CONFIG_FILE),
+            r#"{"reviews": {"skills": []}}"#,
+        )
+        .unwrap();
+
+        let config = Config::load(&tmp);
+        assert_eq!(config.skills, Some(vec![] as Vec<String>));
+    }
+
+    #[test]
+    fn skills_null_treated_as_none() {
+        let tmp = TempDir::new("config-skills-null");
+        fs::create_dir_all(tmp.join(".git")).unwrap();
+        fs::create_dir_all(tmp.join(".claude")).unwrap();
+        fs::write(
+            tmp.join(TOOLS_CONFIG_FILE),
+            r#"{"reviews": {"skills": null}}"#,
+        )
+        .unwrap();
+
+        let config = Config::load(&tmp);
+        assert!(config.skills.is_none());
+    }
+
+    #[test]
+    fn skills_wrong_type_falls_back_to_default() {
+        let tmp = TempDir::new("config-skills-wrongtype");
+        fs::create_dir_all(tmp.join(".git")).unwrap();
+        fs::create_dir_all(tmp.join(".claude")).unwrap();
+        fs::write(
+            tmp.join(TOOLS_CONFIG_FILE),
+            r#"{"reviews": {"skills": 42}}"#,
+        )
+        .unwrap();
+
+        let config = Config::load(&tmp);
+        assert!(config.skills.is_none());
+        assert!(config.enabled);
     }
 
     #[test]
@@ -256,7 +301,6 @@ mod tests {
         .unwrap();
 
         let config = Config::load(&tmp);
-        // tools.json wins: knip=false, oxlint stays default (true)
         assert!(!config.tools.knip);
         assert!(config.tools.oxlint);
     }

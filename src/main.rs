@@ -87,8 +87,24 @@ fn run(input: &str, cwd: &Path) -> Option<String> {
         );
     }
 
-    if !config.enabled || !config.skills.contains(&skill) {
+    if !config.enabled {
         return None;
+    }
+
+    if let Some(skills) = &config.skills {
+        if !skills.contains(&skill) {
+            if *DEBUG {
+                eprintln!("reviews: debug: skill={skill} not in {skills:?}, skipping");
+            }
+            return None;
+        }
+    } else {
+        eprintln!(
+            "reviews: running on all skills. \
+             Filter via .claude/tools.json: \
+             {{\"reviews\":{{\"skills\":[\"{skill}\"]}}}} \
+             — see https://github.com/thkt/reviews#configuration"
+        );
     }
 
     let project = project::ProjectInfo::detect(cwd);
@@ -350,6 +366,12 @@ mod tests {
     fn run_returns_none_for_non_matching_skill() {
         let tmp = test_utils::TempDir::new("run-nonmatch");
         std::fs::create_dir_all(tmp.join(".git")).unwrap();
+        std::fs::create_dir_all(tmp.join(".claude")).unwrap();
+        std::fs::write(
+            tmp.join(".claude/tools.json"),
+            r#"{"reviews": {"skills": ["audit"]}}"#,
+        )
+        .unwrap();
         let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "commit"}}"#;
         assert!(run(input, &tmp).is_none());
     }
@@ -376,6 +398,20 @@ mod tests {
         std::fs::create_dir_all(tmp.join(".git")).unwrap();
         std::fs::write(tmp.join(".claude-reviews.json"), r#"{"skills": ["audit"]}"#).unwrap();
         let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "review"}}"#;
+        assert!(run(input, &tmp).is_none());
+    }
+
+    #[test]
+    fn run_returns_none_for_empty_skills() {
+        let tmp = test_utils::TempDir::new("run-empty-skills");
+        std::fs::create_dir_all(tmp.join(".git")).unwrap();
+        std::fs::create_dir_all(tmp.join(".claude")).unwrap();
+        std::fs::write(
+            tmp.join(".claude/tools.json"),
+            r#"{"reviews": {"skills": []}}"#,
+        )
+        .unwrap();
+        let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "audit"}}"#;
         assert!(run(input, &tmp).is_none());
     }
 
