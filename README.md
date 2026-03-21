@@ -14,7 +14,7 @@ A [Claude Code hook](https://docs.anthropic.com/en/docs/claude-code/hooks) that 
         → Audit agent sees real static analysis results
 ```
 
-The hook is **advisory-only**: it always approves the tool call and never blocks the skill. Tool failures or missing tools are silently skipped.
+The hook is **advisory-only**: it always approves the tool call and never blocks the skill. Tool failures are silently skipped; missing tools print install hints to stderr.
 
 ## Features
 
@@ -34,7 +34,7 @@ Install the tools you want to use:
 | [tsgo](https://github.com/microsoft/typescript-go)        | `npm i -g @typescript/native-preview`       |
 | [react-doctor](https://github.com/millionco/react-doctor) | `npm i -g react-doctor`                     |
 
-If a tool is not installed, it is silently skipped.
+If a tool is not installed, an install hint is printed to stderr and the tool is skipped.
 
 ## Installation
 
