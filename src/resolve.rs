@@ -15,7 +15,7 @@ pub fn resolve_bin(name: &str, start: &Path) -> PathBuf {
     crate::traverse::walk_ancestors(start, |dir| {
         let candidate = dir.join("node_modules/.bin").join(name);
         if candidate.exists() && is_executable(&candidate) {
-            eprintln!("reviews: resolved {} -> {}", name, candidate.display());
+            eprintln!("Reviews: resolved {} -> {}", name, candidate.display());
             Some(candidate)
         } else {
             None

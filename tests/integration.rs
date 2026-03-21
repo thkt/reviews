@@ -80,16 +80,67 @@ fn non_target_skill_exits_silently() {
 }
 
 #[test]
-fn unconfigured_skills_warns_about_filtering() {
-    let tmp = TempDir::new("stderr-hint");
+fn no_config_warns_about_setup() {
+    let tmp = TempDir::new("no-config");
     std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
 
     let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "audit"}}"#;
     let (_, stderr, success) = run_reviews_in(tmp.path(), input);
     assert!(success);
     assert!(
-        stderr.contains("Filter via .claude/tools.json"),
-        "expected stderr hint, got: {stderr}"
+        stderr.contains("no config found"),
+        "expected no-config hint, got: {stderr}"
+    );
+    assert!(
+        !stderr.contains("running on all skills"),
+        "should not print skills hint when no config, got: {stderr}"
+    );
+}
+
+#[test]
+fn tools_json_without_skills_warns_about_filtering() {
+    let tmp = TempDir::new("no-skills");
+    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    std::fs::create_dir_all(tmp.path().join(".claude")).unwrap();
+    std::fs::write(
+        tmp.path().join(".claude/tools.json"),
+        r#"{"reviews": {"enabled": true}}"#,
+    )
+    .unwrap();
+
+    let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "audit"}}"#;
+    let (_, stderr, success) = run_reviews_in(tmp.path(), input);
+    assert!(success);
+    assert!(
+        stderr.contains("running on all skills"),
+        "expected skills hint, got: {stderr}"
+    );
+    assert!(
+        !stderr.contains("no config found"),
+        "should not print no-config hint when tools.json exists, got: {stderr}"
+    );
+}
+
+#[test]
+fn legacy_config_without_skills_warns_about_filtering() {
+    let tmp = TempDir::new("legacy-no-skills");
+    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    std::fs::write(
+        tmp.path().join(".claude-reviews.json"),
+        r#"{"enabled": true}"#,
+    )
+    .unwrap();
+
+    let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "audit"}}"#;
+    let (_, stderr, success) = run_reviews_in(tmp.path(), input);
+    assert!(success);
+    assert!(
+        stderr.contains("running on all skills"),
+        "expected skills hint for legacy config, got: {stderr}"
+    );
+    assert!(
+        !stderr.contains("no config found"),
+        "should not print no-config hint for legacy config, got: {stderr}"
     );
 }
 
@@ -108,8 +159,12 @@ fn configured_skills_runs_without_warning() {
     let (_, stderr, success) = run_reviews_in(tmp.path(), input);
     assert!(success);
     assert!(
-        !stderr.contains("Filter via .claude/tools.json"),
-        "should not print hint when skills configured, got: {stderr}"
+        !stderr.contains("no config found"),
+        "should not print no-config hint when configured, got: {stderr}"
+    );
+    assert!(
+        !stderr.contains("running on all skills"),
+        "should not print skills hint when configured, got: {stderr}"
     );
 }
 

@@ -40,7 +40,7 @@ impl ProjectInfo {
         match serde_json::from_str(&content) {
             Ok(v) => Some(v),
             Err(e) => {
-                eprintln!("reviews: warning: invalid package.json: {}", e);
+                eprintln!("Reviews: warning: invalid package.json: {}", e);
                 None
             }
         }

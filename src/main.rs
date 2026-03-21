@@ -91,6 +91,15 @@ fn run(input: &str, cwd: &Path) -> Option<String> {
         return None;
     }
 
+    if config.source == config::ConfigSource::Default {
+        eprintln!(
+            "Reviews: no config found. \
+             Add .claude/tools.json: \
+             {{\"reviews\":{{\"skills\":[\"{skill}\"]}}}} \
+             — see https://github.com/thkt/reviews#configuration"
+        );
+    }
+
     if let Some(skills) = &config.skills {
         if !skills.contains(&skill) {
             if *DEBUG {
@@ -98,9 +107,9 @@ fn run(input: &str, cwd: &Path) -> Option<String> {
             }
             return None;
         }
-    } else {
+    } else if config.source != config::ConfigSource::Default {
         eprintln!(
-            "reviews: running on all skills. \
+            "Reviews: running on all skills. \
              Filter via .claude/tools.json: \
              {{\"reviews\":{{\"skills\":[\"{skill}\"]}}}} \
              — see https://github.com/thkt/reviews#configuration"
@@ -141,14 +150,14 @@ fn main() {
     {
         Ok(n) => n,
         Err(e) => {
-            eprintln!("reviews: stdin read error: {}", e);
+            eprintln!("Reviews: stdin read error: {}", e);
             return;
         }
     };
 
     if bytes_read > MAX_INPUT_SIZE {
         eprintln!(
-            "reviews: warning: input too large (>{}B limit), skipping",
+            "Reviews: warning: input too large (>{}B limit), skipping",
             MAX_INPUT_SIZE
         );
         return;
@@ -157,7 +166,7 @@ fn main() {
     let cwd = match std::env::current_dir() {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("reviews: cannot determine cwd: {}", e);
+            eprintln!("Reviews: cannot determine cwd: {}", e);
             return;
         }
     };
@@ -223,7 +232,7 @@ fn run_tools_parallel(
         .map(|(name, handle)| match handle.join() {
             Ok(result) => result,
             Err(e) => {
-                eprintln!("reviews: {} thread panicked: {:?}", name, e);
+                eprintln!("Reviews: {} thread panicked: {:?}", name, e);
                 tools::ToolResult::skipped(name)
             }
         })

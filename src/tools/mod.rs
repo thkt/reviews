@@ -93,7 +93,7 @@ fn run_with_timeout_duration(
     let child = match cmd.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn() {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("reviews: {} spawn error: {}", name, e);
+            eprintln!("Reviews: {} spawn error: {}", name, e);
             return ToolResult::skipped(name);
         }
     };
@@ -113,12 +113,12 @@ fn run_with_timeout_duration(
             output: combine_output(&output),
         },
         Ok(Err(e)) => {
-            eprintln!("reviews: {} output read error: {}", name, e);
+            eprintln!("Reviews: {} output read error: {}", name, e);
             ToolResult::skipped(name)
         }
         Err(mpsc::RecvTimeoutError::Timeout) => {
             eprintln!(
-                "reviews: {} timed out after {}s, killing process group",
+                "Reviews: {} timed out after {}s, killing process group",
                 name,
                 timeout.as_secs()
             );
@@ -126,7 +126,7 @@ fn run_with_timeout_duration(
             ToolResult::skipped(name)
         }
         Err(mpsc::RecvTimeoutError::Disconnected) => {
-            eprintln!("reviews: {} wait thread disconnected", name);
+            eprintln!("Reviews: {} wait thread disconnected", name);
             ToolResult::skipped(name)
         }
     }

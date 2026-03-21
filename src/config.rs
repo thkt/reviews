@@ -43,11 +43,19 @@ define_tools! {
     markuplint,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConfigSource {
+    Default,
+    ToolsJson,
+    Legacy,
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub enabled: bool,
     pub skills: Option<Vec<String>>,
     pub tools: ToolsConfig,
+    pub source: ConfigSource,
 }
 
 impl Default for Config {
@@ -56,6 +64,7 @@ impl Default for Config {
             enabled: true,
             skills: None,
             tools: ToolsConfig::default(),
+            source: ConfigSource::Default,
         }
     }
 }
@@ -95,27 +104,33 @@ impl Config {
 
     fn read_and_parse<T: serde::de::DeserializeOwned>(path: &Path) -> Option<T> {
         let content = std::fs::read_to_string(path)
-            .map_err(|e| eprintln!("reviews: warning: failed to read config: {}", e))
+            .map_err(|e| eprintln!("Reviews: warning: failed to read config: {}", e))
             .ok()?;
         serde_json::from_str(&content)
-            .map_err(|e| eprintln!("reviews: warning: invalid config JSON: {}", e))
+            .map_err(|e| eprintln!("Reviews: warning: invalid config JSON: {}", e))
             .ok()
     }
 
-    fn load_tools_config(path: &Path, default: Config) -> Config {
+    fn load_tools_config(path: &Path, mut base: Config) -> Config {
         let Some(tools) = Self::read_and_parse::<ToolsJsonConfig>(path) else {
-            return default;
+            return base;
         };
         match tools.reviews {
-            Some(project) => default.merge(project),
-            None => default,
+            Some(project) => {
+                base.source = ConfigSource::ToolsJson;
+                base.merge(project)
+            }
+            None => base,
         }
     }
 
-    fn load_legacy_config(path: &Path, default: Config) -> Config {
+    fn load_legacy_config(path: &Path, mut base: Config) -> Config {
         match Self::read_and_parse::<ProjectConfig>(path) {
-            Some(project) => default.merge(project),
-            None => default,
+            Some(project) => {
+                base.source = ConfigSource::Legacy;
+                base.merge(project)
+            }
+            None => base,
         }
     }
 
@@ -146,6 +161,7 @@ mod tests {
 
         let config = Config::load(&tmp);
         assert!(config.enabled);
+        assert_eq!(config.source, ConfigSource::Default);
         assert!(config.tools.knip);
         assert!(config.tools.oxlint);
         assert!(config.tools.tsgo);
@@ -166,6 +182,7 @@ mod tests {
 
         let config = Config::load(&tmp);
         assert!(config.enabled);
+        assert_eq!(config.source, ConfigSource::ToolsJson);
         assert!(!config.tools.knip);
         assert!(config.tools.oxlint);
         assert!(config.tools.tsgo);
@@ -185,6 +202,7 @@ mod tests {
 
         let config = Config::load(&tmp);
         assert!(!config.enabled);
+        assert_eq!(config.source, ConfigSource::ToolsJson);
     }
 
     #[test]
@@ -280,6 +298,7 @@ mod tests {
         .unwrap();
 
         let config = Config::load(&tmp);
+        assert_eq!(config.source, ConfigSource::Legacy);
         assert!(!config.tools.knip);
         assert!(config.tools.oxlint);
     }
@@ -317,6 +336,7 @@ mod tests {
         .unwrap();
 
         let config = Config::load(&tmp);
+        assert_eq!(config.source, ConfigSource::Default);
         assert!(config.tools.knip);
         assert!(config.tools.oxlint);
     }
