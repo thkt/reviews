@@ -8,11 +8,13 @@ mod tools;
 mod traverse;
 
 use serde::Deserialize;
+use std::env;
 use std::io::{self, Read};
 use std::path::Path;
 use std::sync::LazyLock;
+use std::time::Instant;
 
-static DEBUG: LazyLock<bool> = LazyLock::new(|| std::env::var("REVIEWS_DEBUG").is_ok());
+static DEBUG: LazyLock<bool> = LazyLock::new(|| env::var("REVIEWS_DEBUG").is_ok());
 
 const MAX_INPUT_SIZE: usize = 10_000_000;
 
@@ -128,7 +130,7 @@ fn run(input: &str, cwd: &Path) -> Option<String> {
         );
     }
 
-    let start = std::time::Instant::now();
+    let start = Instant::now();
     let mut results = run_tools_parallel(&config, &project);
     tools::enforce_total_budget(&mut results);
     warn_missing_tools(&results);
@@ -183,7 +185,7 @@ fn main() {
         return;
     }
 
-    let cwd = match std::env::current_dir() {
+    let cwd = match env::current_dir() {
         Ok(d) => d,
         Err(e) => {
             eprintln!("Reviews: cannot determine cwd: {}", e);
@@ -262,6 +264,7 @@ fn run_tools_parallel(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn parse_skill_name_valid() {
@@ -394,9 +397,9 @@ mod tests {
     #[test]
     fn run_returns_none_for_non_matching_skill() {
         let tmp = test_utils::TempDir::new("run-nonmatch");
-        std::fs::create_dir_all(tmp.join(".git")).unwrap();
-        std::fs::create_dir_all(tmp.join(".claude")).unwrap();
-        std::fs::write(
+        fs::create_dir_all(tmp.join(".git")).unwrap();
+        fs::create_dir_all(tmp.join(".claude")).unwrap();
+        fs::write(
             tmp.join(".claude/tools.json"),
             r#"{"reviews": {"skills": ["audit"]}}"#,
         )
@@ -408,8 +411,8 @@ mod tests {
     #[test]
     fn run_returns_none_when_disabled() {
         let tmp = test_utils::TempDir::new("run-disabled");
-        std::fs::create_dir_all(tmp.join(".git")).unwrap();
-        std::fs::write(tmp.join(".claude-reviews.json"), r#"{"enabled": false}"#).unwrap();
+        fs::create_dir_all(tmp.join(".git")).unwrap();
+        fs::write(tmp.join(".claude-reviews.json"), r#"{"enabled": false}"#).unwrap();
         let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "review"}}"#;
         assert!(run(input, &tmp).is_none());
     }
@@ -417,15 +420,15 @@ mod tests {
     #[test]
     fn run_returns_none_for_invalid_input() {
         let tmp = test_utils::TempDir::new("run-invalid");
-        std::fs::create_dir_all(tmp.join(".git")).unwrap();
+        fs::create_dir_all(tmp.join(".git")).unwrap();
         assert!(run("not json", &tmp).is_none());
     }
 
     #[test]
     fn run_returns_none_for_skill_not_in_config() {
         let tmp = test_utils::TempDir::new("run-notinlist");
-        std::fs::create_dir_all(tmp.join(".git")).unwrap();
-        std::fs::write(tmp.join(".claude-reviews.json"), r#"{"skills": ["audit"]}"#).unwrap();
+        fs::create_dir_all(tmp.join(".git")).unwrap();
+        fs::write(tmp.join(".claude-reviews.json"), r#"{"skills": ["audit"]}"#).unwrap();
         let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "review"}}"#;
         assert!(run(input, &tmp).is_none());
     }
@@ -433,9 +436,9 @@ mod tests {
     #[test]
     fn run_returns_none_for_empty_skills() {
         let tmp = test_utils::TempDir::new("run-empty-skills");
-        std::fs::create_dir_all(tmp.join(".git")).unwrap();
-        std::fs::create_dir_all(tmp.join(".claude")).unwrap();
-        std::fs::write(
+        fs::create_dir_all(tmp.join(".git")).unwrap();
+        fs::create_dir_all(tmp.join(".claude")).unwrap();
+        fs::write(
             tmp.join(".claude/tools.json"),
             r#"{"reviews": {"skills": []}}"#,
         )

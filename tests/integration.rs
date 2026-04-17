@@ -1,5 +1,8 @@
+use std::env;
+use std::fs;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::process;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -10,29 +13,25 @@ struct TempDir(PathBuf);
 impl TempDir {
     fn new(prefix: &str) -> Self {
         let id = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!(
-            "reviews-integ-{}-{}-{}",
-            prefix,
-            std::process::id(),
-            id
-        ));
-        let _ = std::fs::remove_dir_all(&path);
-        std::fs::create_dir_all(&path).unwrap();
+        let path =
+            env::temp_dir().join(format!("reviews-integ-{}-{}-{}", prefix, process::id(), id));
+        let _ = fs::remove_dir_all(&path);
+        fs::create_dir_all(&path).unwrap();
         Self(path)
     }
 
-    fn path(&self) -> &std::path::Path {
+    fn path(&self) -> &Path {
         &self.0
     }
 }
 
 impl Drop for TempDir {
     fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
+        let _ = fs::remove_dir_all(&self.0);
     }
 }
 
-fn run_reviews_in(dir: &std::path::Path, input: &str) -> (String, String, bool) {
+fn run_reviews_in(dir: &Path, input: &str) -> (String, String, bool) {
     let mut child = Command::new(env!("CARGO_BIN_EXE_reviews"))
         .current_dir(dir)
         .stdin(Stdio::piped())
@@ -58,16 +57,16 @@ fn run_reviews_in(dir: &std::path::Path, input: &str) -> (String, String, bool) 
 
 fn run_reviews(input: &str) -> (String, String, bool) {
     let tmp = TempDir::new("default");
-    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    fs::create_dir_all(tmp.path().join(".git")).unwrap();
     run_reviews_in(tmp.path(), input)
 }
 
 #[test]
 fn non_target_skill_exits_silently() {
     let tmp = TempDir::new("nonmatch");
-    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
-    std::fs::create_dir_all(tmp.path().join(".claude")).unwrap();
-    std::fs::write(
+    fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    fs::create_dir_all(tmp.path().join(".claude")).unwrap();
+    fs::write(
         tmp.path().join(".claude/tools.json"),
         r#"{"reviews": {"skills": ["audit"]}}"#,
     )
@@ -82,7 +81,7 @@ fn non_target_skill_exits_silently() {
 #[test]
 fn no_config_warns_about_setup() {
     let tmp = TempDir::new("no-config");
-    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    fs::create_dir_all(tmp.path().join(".git")).unwrap();
 
     let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "audit"}}"#;
     let (_, stderr, success) = run_reviews_in(tmp.path(), input);
@@ -100,9 +99,9 @@ fn no_config_warns_about_setup() {
 #[test]
 fn tools_json_without_skills_warns_about_filtering() {
     let tmp = TempDir::new("no-skills");
-    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
-    std::fs::create_dir_all(tmp.path().join(".claude")).unwrap();
-    std::fs::write(
+    fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    fs::create_dir_all(tmp.path().join(".claude")).unwrap();
+    fs::write(
         tmp.path().join(".claude/tools.json"),
         r#"{"reviews": {"enabled": true}}"#,
     )
@@ -124,8 +123,8 @@ fn tools_json_without_skills_warns_about_filtering() {
 #[test]
 fn legacy_config_without_skills_warns_about_filtering() {
     let tmp = TempDir::new("legacy-no-skills");
-    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
-    std::fs::write(
+    fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    fs::write(
         tmp.path().join(".claude-reviews.json"),
         r#"{"enabled": true}"#,
     )
@@ -147,9 +146,9 @@ fn legacy_config_without_skills_warns_about_filtering() {
 #[test]
 fn configured_skills_runs_without_warning() {
     let tmp = TempDir::new("no-hint");
-    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
-    std::fs::create_dir_all(tmp.path().join(".claude")).unwrap();
-    std::fs::write(
+    fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    fs::create_dir_all(tmp.path().join(".claude")).unwrap();
+    fs::write(
         tmp.path().join(".claude/tools.json"),
         r#"{"reviews": {"skills": ["audit"]}}"#,
     )
@@ -185,8 +184,8 @@ fn empty_input_exits_silently() {
 #[test]
 fn disabled_config_exits_silently() {
     let tmp = TempDir::new("disabled");
-    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
-    std::fs::write(
+    fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    fs::write(
         tmp.path().join(".claude-reviews.json"),
         r#"{"enabled": false}"#,
     )
@@ -201,7 +200,7 @@ fn disabled_config_exits_silently() {
 #[test]
 fn default_skill_does_not_crash() {
     let tmp = TempDir::new("review-nocrash");
-    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    fs::create_dir_all(tmp.path().join(".git")).unwrap();
 
     let input = r#"{"tool_name": "Skill", "tool_input": {"skill": "review"}}"#;
     let (stdout, _, success) = run_reviews_in(tmp.path(), input);
@@ -217,8 +216,8 @@ fn default_skill_does_not_crash() {
 #[test]
 fn configured_skill_does_not_crash() {
     let tmp = TempDir::new("configured-nocrash");
-    std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
-    std::fs::write(
+    fs::create_dir_all(tmp.path().join(".git")).unwrap();
+    fs::write(
         tmp.path().join(".claude-reviews.json"),
         r#"{"skills": ["audit"]}"#,
     )

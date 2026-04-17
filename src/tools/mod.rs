@@ -4,11 +4,13 @@ pub mod oxlint;
 pub mod react_doctor;
 pub mod tsgo;
 
+use crate::project::ProjectInfo;
 use crate::sanitize;
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::{Command, Output, Stdio};
 use std::sync::mpsc;
+use std::thread;
 use std::time::Duration;
 
 const TOOL_TIMEOUT: Duration = Duration::from_secs(60);
@@ -54,9 +56,9 @@ fn combine_output(output: &Output) -> String {
 
 fn truncate_output(s: &str) -> String {
     if s.len() <= MAX_OUTPUT_SIZE {
-        s.to_string()
+        s.to_owned()
     } else {
-        let mut truncated = s[..s.floor_char_boundary(MAX_OUTPUT_SIZE)].to_string();
+        let mut truncated = s[..s.floor_char_boundary(MAX_OUTPUT_SIZE)].to_owned();
         truncated.push_str("\n[output truncated]");
         truncated
     }
@@ -72,14 +74,18 @@ pub fn enforce_total_budget(results: &mut [ToolResult]) {
     }
 }
 
-unsafe extern "C" {
-    fn kill(pid: i32, sig: i32) -> i32;
+#[allow(unsafe_code)]
+mod ffi {
+    unsafe extern "C" {
+        pub fn kill(pid: i32, sig: i32) -> i32;
+    }
 }
 
+#[allow(unsafe_code)]
 fn kill_process_group(pid: u32) {
     // Safety: kill(-pid) sends signal to the process group led by `pid`.
     unsafe {
-        kill(-(pid as i32), 9);
+        ffi::kill(-(pid as i32), 9);
     }
 }
 
@@ -101,7 +107,7 @@ fn run_with_timeout_duration(
     let pid = child.id();
     let (tx, rx) = mpsc::channel();
 
-    std::thread::spawn(move || {
+    thread::spawn(move || {
         let result = child.wait_with_output();
         let _ = tx.send(result);
     });
@@ -168,7 +174,7 @@ pub(crate) fn run_js_command(
     name: &'static str,
     bin: &Path,
     args: &[&str],
-    info: &crate::project::ProjectInfo,
+    info: &ProjectInfo,
 ) -> ToolResult {
     let mut cmd = Command::new(bin);
     cmd.args(args).current_dir(&info.root);

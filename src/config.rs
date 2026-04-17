@@ -1,4 +1,7 @@
+use crate::traverse;
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 const TOOLS_CONFIG_FILE: &str = ".claude/tools.json";
@@ -97,13 +100,13 @@ impl Config {
     }
 
     fn find_git_root(start: &Path) -> Option<PathBuf> {
-        crate::traverse::walk_ancestors(start, |dir| {
+        traverse::walk_ancestors(start, |dir| {
             dir.join(".git").exists().then(|| dir.to_path_buf())
         })
     }
 
-    fn read_and_parse<T: serde::de::DeserializeOwned>(path: &Path) -> Option<T> {
-        let content = std::fs::read_to_string(path)
+    fn read_and_parse<T: DeserializeOwned>(path: &Path) -> Option<T> {
+        let content = fs::read_to_string(path)
             .map_err(|e| eprintln!("Reviews: warning: failed to read config: {}", e))
             .ok()?;
         serde_json::from_str(&content)
