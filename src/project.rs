@@ -1,3 +1,5 @@
+use crate::traverse;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
@@ -25,7 +27,7 @@ impl ProjectInfo {
     }
 
     fn find_root(start: &Path) -> PathBuf {
-        crate::traverse::walk_ancestors(start, |dir| {
+        traverse::walk_ancestors(start, |dir| {
             dir.join(".git").exists().then(|| dir.to_path_buf())
         })
         .unwrap_or_else(|| start.to_path_buf())
@@ -33,7 +35,7 @@ impl ProjectInfo {
 
     fn read_package_json(root: &Path) -> Option<serde_json::Value> {
         let pkg_path = root.join("package.json");
-        let content = match std::fs::read_to_string(&pkg_path) {
+        let content = match fs::read_to_string(&pkg_path) {
             Ok(c) => c,
             Err(_) => return None,
         };

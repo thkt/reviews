@@ -12,11 +12,7 @@ pub fn sanitize(input: &str) -> String {
     let s = BOLD_RE.replace_all(&s, "$1");
     let s = BACKTICK_RUN_RE.replace_all(&s, "``");
 
-    let s: String = s
-        .lines()
-        .map(|line| line.trim_end())
-        .collect::<Vec<_>>()
-        .join("\n");
+    let s: String = s.lines().map(str::trim_end).collect::<Vec<_>>().join("\n");
 
     let s = MULTI_BLANK.replace_all(&s, "\n\n");
 
